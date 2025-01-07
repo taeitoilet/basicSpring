@@ -1,0 +1,21 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /tech
+spring:
+  datasource:
+    url: "jdbc:mysql://localhost:3306/tech_data?allowMultiQueries=true"
+    username: tech
+    password: 016653Az
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    properties:
+      jdbc.batch_size: 30
+      # Sắp xếp các câu lệnh INSERT để tăng hiệu suất
+      order_inserts: true
+      # Sắp xếp các câu lệnh UPDATE để tăng hiệu suất
+      order_updates: true
+      # Cho phép Hibernate tạo mã ID mới trong chế độ batch
+      id.new_generator_mappings: true
+jwt:
+  singerKey : "lhLFCRHLCxBOwkZfwekYrzYzSE+CLCy5Mb1v7DLv2lMzOKaHR+c0b8nesilWrSPL"
