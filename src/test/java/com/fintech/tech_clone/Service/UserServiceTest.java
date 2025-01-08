@@ -91,16 +91,6 @@ class UserServiceTest {
         user.setUser_citizen_identification("031203012111");
         user.setUser_address("Hai Phong");
         user.setUser_money(10000);
-//          userr = new UserResponse();
-//          userr.setUser_id(user.getUser_id());
-//          userr.setRole_name(user.getRole().getRole_name());
-//          userr.setUser_name(user.getUser_name());
-//          userr.setUser_password(user.getUser_password());
-//          userr.setUser_fullname(user.getUser_fullname());
-//          userr.setUser_email(user.getUser_email());
-//          userr.setUser_phone(user.getUser_phone());
-//          userr.setUser_citizen_identification(user.getUser_citizen_identification());
-//          userr.setUser_address(user.getUser_address());
     }
     @Test
     void abc(){
@@ -112,56 +102,19 @@ class UserServiceTest {
     void createUser_success(){
         role = new Role();
         role.setRole_id(1);
-//        Mockito.when(userRepository.findUserByUserName(request.getUser_name())).thenReturn(null);
-          userSteps.validUsername(request,userRepository);
-//        Mockito.when(roleRepository.findById(request.getRole_id()))
-//                .thenReturn(Optional.of(role));
-        userSteps.validRole(request,roleRepository);
-
-//        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-//                .thenReturn(null);
-        userSteps.validPhone(request,userRepository);
-//        Mockito.when(userRepository.findUserByUserCitizenIdentification(request.getUser_citizen_identification()))
-//                .thenReturn(null);
-        userSteps.validCitizen(request,userRepository);
-        User savedUser = new User();
-        savedUser.setUser_name(request.getUser_name());
-        savedUser.setUser_password("encoded_password");
-        savedUser.setRole(role);
-        Mockito.when(passwordEncoder.encode(request.getUser_password())).thenReturn("encoded password");
-        Mockito.when(authentication.getName()).thenReturn("admin");
-        Mockito.when(userRepository.save(ArgumentMatchers.any(User.class))).thenReturn(savedUser);
+        userSteps.validUsername(request.getUser_name(),userRepository);
+        userSteps.validRole(request.getRole_id(),roleRepository);
+        userSteps.validPhone(request.getUser_phone(),userRepository);
+        userSteps.validCitizen(request.getUser_citizen_identification(),userRepository);
+        userSteps.saveUser(user,userRepository);
         User result = userSteps.createUser(userService,request);
         Assertions.assertNotNull(result);
         Assertions.assertEquals(request.getUser_name(), result.getUser_name());
     }
     @Test
     void getAllUser_success() {
-        Role role1 = new Role();
-        role1.setRole_id(1);
-        role1.setRole_name("Admin");
-        Role role2 = new Role();
-        role2.setRole_id(2);
-        role2.setRole_name("User");
-        User user1 = new User();
-        user1.setUser_id(1);
-        user1.setUser_name("admin");
-        user1.setUser_fullname("admin");
-        user1.setUser_email("abc@xyz.com");
-        user1.setUser_phone("123456789");
-        user1.setRole(role1);
-        User user2 = new User();
-        user2.setUser_id(2);
-        user2.setUser_name("JaneDoe");
-        user2.setUser_fullname("Jane Doe");
-        user2.setUser_email("janedoe@example.com");
-        user2.setUser_phone("987654321");
-        user2.setRole(role2);
-        List<User> users = Arrays.asList(user1, user2);
-        org.springframework.data.domain.Pageable pageable = PageRequest.of(0, 10);
-        Page<User> userPage = new PageImpl<>(users, pageable, users.size());
-        Mockito.when(userRepository.findAll(pageable)).thenReturn(userPage);
-        Page<UserResponse> userResponsePage = userService.getAllUser(pageable);
+        userSteps.mockFindAllUser(userRepository);
+        Page<UserResponse> userResponsePage = userSteps.getAllUser(userService);
         Assertions.assertNotNull(userResponsePage);
         Assertions.assertEquals(2, userResponsePage.getContent().size());
         UserResponse userResponse1 = userResponsePage.getContent().get(0);
@@ -179,131 +132,85 @@ class UserServiceTest {
     }
     @Test
     void updateUser_userPhoneExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-                .thenReturn(new User());
-        Mockito.when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.updateUser(1,request1));
+        userSteps.existedUser(1,userRepository,user);
+        userSteps.validRole(request1.getRole_id(),roleRepository);
+        userSteps.existedPhone(request1.getUser_phone(),userRepository);
+        RuntimeException exception = userSteps.updateUserFail(request1,userService);
         Assertions.assertEquals("phone existed", exception.getMessage());
     }
     @Test
     void updateUser_roleNotExisted(){
-//          role = new Role();
-//          role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.empty());
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.updateUser(1,request1));
-        Assertions.assertEquals("Role not found", exception.getMessage());
+        userSteps.invalidRole(request1.getRole_id(),roleRepository);
+        AppException exception = userSteps.updateUserFail(request1,userService);
+        Assertions.assertEquals(ErrorCode.INVALID_ROLE.getMessage(), exception.getMessage());
     }
     @Test
     void updateUser_citizenExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        Mockito.when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-                .thenReturn(null);
-        Mockito.when(userRepository.findUserByUserCitizenIdentification(request.getUser_citizen_identification()))
-                .thenReturn(new User());
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.updateUser(1,request1));
-        Assertions.assertEquals("CITIZEN IDENTIFICATION existed", exception.getMessage());
+        userSteps.validRole(request1.getRole_id(),roleRepository);
+        userSteps.existedUser(1,userRepository,user);
+        userSteps.validPhone(request1.getUser_phone(),userRepository);
+        userSteps.existedCitizen(request1.getUser_citizen_identification(),userRepository);
+        AppException exception = userSteps.updateUserFail(request1,userService);
+        Assertions.assertEquals(ErrorCode.CITIZEN_IDENTIFICATION_EXIST.getMessage(), exception.getMessage());
     }
     @Test
     void updateUser_onSuccess(){
         User existingUser = new User();
         existingUser.setUser_id(1);
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(userRepository.findUserById(1)).thenReturn(existingUser);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-                .thenReturn(null);
-        Mockito.when(userRepository.findUserByUserCitizenIdentification(request.getUser_citizen_identification()))
-                .thenReturn(null);
-        Mockito.when(passwordEncoder.encode(request1.getUser_password())).thenReturn("encoded new password");
-        Mockito.when(userRepository.save(ArgumentMatchers.any(User.class))).thenReturn(existingUser);
-        User result = userService.updateUser(1,request1);
+        userSteps.existedUser(1,userRepository,user);
+        userSteps.validRole(request1.getRole_id(),roleRepository);
+        userSteps.validPhone(request1.getUser_phone(),userRepository);
+        userSteps.validCitizen(request1.getUser_citizen_identification(),userRepository);
+        userSteps.saveUser(user,userRepository);
+        User result = userSteps.updateUserSuccess(request1,userService);
         Assertions.assertNotNull(result);
         Assertions.assertEquals(request1.getUser_fullname(), result.getUser_fullname());
+
     }
     @Test
     void createUser_userExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(userRepository.findUserByUserName(request.getUser_name())).thenReturn(new User());
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.createUser(request));
+        userSteps.validRole(1,roleRepository);
+        userSteps.existedUsername(request.getUser_name(),userRepository);
+        AppException exception = userSteps.createUserFail(userService,request);
         Assertions.assertEquals(ErrorCode.USER_EXISTED.getCode(), exception.getErrorCode().getCode());
     }
     @Test
     void createUser_userPhoneExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-                .thenReturn(new User());
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.createUser(request));
-        Assertions.assertEquals("phone existed", exception.getMessage());
+        userSteps.validRole(1,roleRepository);
+        userSteps.existedPhone(request.getUser_phone(),userRepository);
+        AppException exception = userSteps.createUserFail(userService,request);
+        Assertions.assertEquals(ErrorCode.PHONE_EXIST.getMessage(), exception.getMessage());
     }
     @Test
     void createUser_userCitizenIdentificationExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.of(role));
-        Mockito.when(userRepository.findUserByUserPhone(request.getUser_phone()))
-                .thenReturn(null);
-        Mockito.when(userRepository.findUserByUserCitizenIdentification(request.getUser_citizen_identification()))
-                .thenReturn(new User());
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.createUser(request));
-        Assertions.assertEquals("Citizen Identification existed!", exception.getMessage());
+        userSteps.validRole(1,roleRepository);
+        userSteps.validPhone(request.getUser_phone(),userRepository);
+        userSteps.existedCitizen(request.getUser_citizen_identification(),userRepository);
+        AppException exception = userSteps.createUserFail(userService,request);
+        Assertions.assertEquals(ErrorCode.CITIZEN_IDENTIFICATION_EXIST.getMessage(), exception.getMessage());
     }
     @Test
     void createUser_roleNotExisted(){
-        role = new Role();
-        role.setRole_id(1);
-        Mockito.when(roleRepository.findById(request.getRole_id()))
-                .thenReturn(Optional.empty());
-        AppException exception = Assertions.assertThrows(AppException.class,
-                ()-> userService.createUser(request));
-        Assertions.assertEquals("Invalid Role", exception.getMessage());
+        userSteps.invalidRole(1,roleRepository);
+        AppException exception = userSteps.createUserFail(userService,request);
+        Assertions.assertEquals(ErrorCode.INVALID_ROLE.getMessage(), exception.getMessage());
     }
     @Test
     void getUserById_fail(){
-        Mockito.when(userRepository.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.empty());
-        RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-                () -> userService.getUser(1));
-        Assertions.assertEquals("User not found", exception.getMessage());
+        userSteps.invalidUserId(userRepository);
+        AppException exception =userSteps.getUserByIdFail(1,userService);
+        Assertions.assertEquals(ErrorCode.USER_NOT_EXISTED.getMessage(), exception.getMessage());
     }
     @Test
     void findAllUserByUserName_success(){
-        ArrayList<User> arrayList = new ArrayList<>();
-        arrayList.add(user);
-        Mockito.when(userRepository.searchAllUserByUserName(ArgumentMatchers.anyString()))
-                .thenReturn(arrayList);
-        ArrayList<UserResponse> result = userService.findAllUserByUserName("admin");
+        userSteps.mockSearchUserByUserName(userRepository,user);
+        ArrayList<UserResponse> result = userSteps.findAllUserByUserName(userService);
         Assertions.assertNotNull(result);
-        Assertions.assertEquals(arrayList.get(0).getUser_fullname(), result.get(0).getUser_fullname());
     }
     @Test
     void findAllUserByUserName_returnNull(){
-        Mockito.when(userRepository.searchAllUserByUserName(ArgumentMatchers.anyString()))
-                .thenReturn(null);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.findAllUserByUserName("admin"));
+        userSteps.mockSearchUserByUserNameNull(userRepository);
+        AppException exception = userSteps.findAllUserByUserNameFail(userService);
         Assertions.assertEquals(ErrorCode.USER_NOT_EXISTED.getCode(),exception.getErrorCode().getCode());
     }
     @Test
@@ -311,9 +218,8 @@ class UserServiceTest {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setUser_name("testUsername");
         loginRequest.setUser_password("testPassword");
-        Mockito.when(userRepository.findUserByUserName(ArgumentMatchers.anyString())).thenReturn(null);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.authenticate(loginRequest));
+        userSteps.validUsername(loginRequest.getUser_name(),userRepository);
+        AppException exception = userSteps.loginFail(userService,loginRequest);
         Assertions.assertEquals(ErrorCode.USER_NOT_EXISTED.getCode(),exception.getErrorCode().getCode());
     }
     @Test
@@ -321,12 +227,10 @@ class UserServiceTest {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setUser_name("testUsername");
         loginRequest.setUser_password("testPassword");
-        Mockito.when(userRepository.findUserByUserName(ArgumentMatchers.anyString())).thenReturn(user);
-        passwordEncoder =  Mockito.mock(BCryptPasswordEncoder.class);
-        Mockito.when(passwordEncoder.matches(loginRequest.getUser_password(), user.getUser_password())).thenReturn(true);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.authenticate(loginRequest));
-        Assertions.assertEquals(ErrorCode.WRONG_PASSWORD.getCode(),exception.getErrorCode().getCode());
+        userSteps.existedUsername(loginRequest.getUser_name(),userRepository);
+        userSteps.mockPasswordWrong(loginRequest.getUser_password(),user.getUser_password(),passwordEncoder);
+        AppException exception = userSteps.loginFail(userService,loginRequest);
+        Assertions.assertEquals(ErrorCode.WRONG_PASSWORD.getMessage(),exception.getMessage());
     }
     @Test
     void authenticate_onSuccess(){
@@ -356,8 +260,10 @@ class UserServiceTest {
         user.setUser_phone("123456789");
         user.setUser_citizen_identification("1234567890");
         user.setUser_address("123 Main St");
-        Mockito.when(userRepository.findById(ArgumentMatchers.anyInt())).thenReturn(Optional.of(user));
-        UserResponse result = userService.getUser(userId);
+
+        userSteps.mockFinbyId(userRepository,user);
+        UserResponse result = userSteps.getUserByIdSuccess(1,userService);
+
         Assertions.assertNotNull(result);
         Assertions.assertEquals(userId, result.getUser_id());
         Assertions.assertEquals("Admin", result.getRole().getRole_name());
@@ -371,72 +277,45 @@ class UserServiceTest {
     @Test
     void activeUser_onSuccess(){
         int userId = 1;
-        user = new User();
-        role = new Role();
-        role.setRole_name("Admin");
-        user.setUser_id(userId);
-        user.setRole(role);
-        user.setUser_name("john_doe");
-        user.setUser_password("password123");
-        user.setUser_fullname("John Doe");
-        user.setUser_email("john.doe@example.com");
-        user.setUser_phone("123456789");
-        user.setUser_citizen_identification("1234567890");
-        user.setUser_address("123 Main St");
-        Mockito.when(userRepository.findUserById(userId)).thenReturn(user);
-        Mockito.when(userRepository.save(user)).thenReturn(user);
-        User result = userService.activeUser(userId);
+        userSteps.existedUser(userId,userRepository,user);
+        userSteps.saveUser(user,userRepository);
+        User result = userSteps.activeUserSuccess(userService,userId);
         Assertions.assertEquals("actived",result.getUser_status());
     }
     @Test
     void activeUser_onFail(){
-        Mockito.when(userRepository.findUserById(1)).thenReturn(null);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.activeUser(1));
+        userSteps.invalidUserId(userRepository);
+        AppException exception = userSteps.activeUserFail(userService);
         Assertions.assertEquals(exception.getMessage(),ErrorCode.USER_NOT_EXISTED.getMessage());
     }
     @Test
     void unactiveUser_onSuccess(){
         int userId = 1;
-        user = new User();
-        role = new Role();
-        role.setRole_name("Admin");
-        user.setUser_id(userId);
-        user.setRole(role);
-        user.setUser_name("john_doe");
-        user.setUser_password("password123");
-        user.setUser_fullname("John Doe");
-        user.setUser_email("john.doe@example.com");
-        user.setUser_phone("123456789");
-        user.setUser_citizen_identification("1234567890");
-        user.setUser_address("123 Main St");
         Mockito.when(userRepository.findUserById(userId)).thenReturn(user);
         Mockito.when(userRepository.save(user)).thenReturn(user);
-        User result = userService.unActiveUser(userId);
+        userSteps.existedUser(userId,userRepository,user);
+        userSteps.saveUser(user,userRepository);
+        User result = userSteps.unactiveUserSuccess(userService,userId);
         Assertions.assertEquals("unactived",result.getUser_status());
     }
     @Test
     void unactiveUser_onFail(){
-        Mockito.when(userRepository.findUserById(1)).thenReturn(null);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.unActiveUser(1));
+        userSteps.invalidUserId(userRepository);
+        AppException exception = userSteps.unactiveUserFail(userService);
         Assertions.assertEquals(exception.getMessage(),ErrorCode.USER_NOT_EXISTED.getMessage());
     }
     @Test
     void deleteUser_onSuccess(){
         int userId = 1;
-        user = new User();
-        user.setUser_id(userId);
-        Mockito.when(userRepository.findUserById(userId)).thenReturn(user);
-        Mockito.when(userRepository.save(user)).thenReturn(user);
-        User result = userService.deleteUser(userId);
+        userSteps.existedUser(userId,userRepository,user);
+        userSteps.saveUser(user,userRepository);
+        User result = userSteps.deleteUserSuccess(userService,userId);
         Assertions.assertEquals("deleted",result.getUser_status());
     }
     @Test
     void deleteUser_onFail(){
-        Mockito.when(userRepository.findUserById(1)).thenReturn(null);
-        AppException exception = Assertions.assertThrows(AppException.class,
-                () -> userService.deleteUser(1));
+        userSteps.invalidUserId(userRepository);
+        AppException exception = userSteps.deleteUserFail(userService);
         Assertions.assertEquals(exception.getMessage(),ErrorCode.USER_NOT_EXISTED.getMessage());
     }
     @Test

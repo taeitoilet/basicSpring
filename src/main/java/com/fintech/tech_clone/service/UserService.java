@@ -56,11 +56,8 @@ public class UserService {
             throw  new AppException(ErrorCode.PHONE_EXIST);
         }
         else if(userRepository.findUserByUserCitizenIdentification(request.getUser_citizen_identification())!=null){
-            throw  new RuntimeException("Citizen Identification existed!");
+            throw  new AppException(ErrorCode.CITIZEN_IDENTIFICATION_EXIST);
         }
-//        else if(userRepository.findRole(request.getRole_id()) == null ){
-////            throw  new RuntimeException("Role not existed!");
-////        }
         else{
             var authentication = SecurityContextHolder.getContext().getAuthentication();
             user.setUser_name(request.getUser_name());
@@ -80,7 +77,7 @@ public class UserService {
         }
     }
     public UserResponse getUser(int id){
-        User user =userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User user =userRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         UserResponse userr = new UserResponse();
         userr.setUser_id(user.getUser_id());
         userr.setRole(user.getRole());
@@ -114,23 +111,8 @@ public class UserService {
         });
         return userResponsePage;
     }
-    //    public UserResponse getUserV2(int id){
-//        User user = userRepository.findUserById(id);
-//        UserResponse userr = new UserResponse();
-//        userr.setUser_id(user.getUser_id());
-//        userr.setRole(user.getRole());
-//        userr.setUser_name(user.getUser_name());
-//        userr.setUser_password(user.getUser_password());
-//        userr.setUser_fullname(user.getUser_fullname());
-//        userr.setUser_email(user.getUser_email());
-//        userr.setUser_phone(user.getUser_phone());
-//        userr.setUser_citizen_identification(user.getUser_citizen_identification());
-//        userr.setUser_address(user.getUser_address());
-//        userr.setUser_dob(user.getUser_dob());
-//        return userr;
-//    }
     public User updateUser(int id, UserUpdateRequest request){
-        Role role = roleRepository.findById(request.getRole_id()) .orElseThrow(() -> new RuntimeException("Role not found"));
+        Role role = roleRepository.findById(request.getRole_id()) .orElseThrow(() -> new AppException(ErrorCode.INVALID_ROLE));
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         User user = userRepository.findUserById(id);
         if(userRepository.findUserByUserPhone(request.getUser_phone()) != null){
@@ -227,7 +209,7 @@ public class UserService {
     }
     public LoginResponse authenticate(LoginRequest request){
         User user  = userRepository.findUserByUserName(request.getUser_name());
-        if(user==null  ){
+        if(user == null  ){
             throw  new AppException(ErrorCode.USER_NOT_EXISTED);
         }else {
             PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
